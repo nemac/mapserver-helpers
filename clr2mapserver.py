@@ -65,20 +65,16 @@ def render_mapserver_colormap(colormaps, is_exact):
 
 
 def get_colormaps_from_clrfile(path):
-  try:
-    with open(path) as clrfile:
-      colormaps = []
-      for line in clrfile:
-        # Strip the newline character and chop off the last two values
-        # We're left with a list of the form [ PIXEL_VALUE, R, G, B ]
-        line = line.strip().split(' ')[:-2]
-        pixel_value = line[0]
-        rgb_value = ' '.join(line[1:])
-        colormaps.append((pixel_value, rgb_value))
-      return colormaps
-  except Exception as e:
-    print(e)
-    print("Failed to read clrfile!")
+  with open(path) as clrfile:
+    colormaps = []
+    for line in clrfile:
+      # Strip the newline character and chop off the last two values
+      # We're left with a list of the form [ PIXEL_VALUE, R, G, B ]
+      line = line.strip().split(',')[:-2]
+      pixel_value = line[0]
+      rgb_value = ' '.join(line[1:])
+      colormaps.append((pixel_value, rgb_value))
+    return colormaps
 
 
 def setup_arg_parser():
