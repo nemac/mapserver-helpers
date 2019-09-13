@@ -20,9 +20,6 @@ def main():
   stdout = rio_info_results.stdout.decode('utf-8')
   metadata = json.loads(stdout)
   print(metadata)
-  # Get stats already done for now
-  #with open('fscore.json') as f:
-  #  metadata = json.loads(f.read())
 
   gdal_translate = ['gdal_translate',
     '-strict', 
