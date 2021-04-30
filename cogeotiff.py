@@ -70,7 +70,7 @@ def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata,
     '--config', 'COMPRESS_OVERVIEW', 'DEFLATE',
     '--config', 'PREDICTOR_OVERVIEW', '2',
     '--config', 'INTERLEAVE_OVERVIEW', 'PIXEL',
-    dst_filename,
+    dst_dataset,
     '2', '4', '8', '16' 
   ]
 
