@@ -65,6 +65,15 @@ def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata,
     print("Something went wrong while trying to run gdal_translate!")
     sys.exit(1)
 
+  # Overviews
+  gdaladdo = ['gdaladdo',
+    '--config', 'COMPRESS_OVERVIEW', 'DEFLATE',
+    '--config', 'PREDICTOR_OVERVIEW', '2',
+    '--config', 'INTERLEAVE_OVERVIEW', 'PIXEL',
+    dst_filename,
+    '2', '4', '8', '16' 
+  ]
+
   # Cleanup
   try:
     os.remove(vrtpath)
