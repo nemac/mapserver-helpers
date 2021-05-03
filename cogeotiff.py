@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 Convert a GeoTiff file to a Cloud-Optimized GeoTiff.
@@ -13,9 +13,9 @@ python convert_to_cogeo.py --help
 
 '''
 
-import sys, os, os.path, argparse
+import sys, os, os.path, argparse, subprocess, json
 
-def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata, copy_overviews, src_dataset):
+def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata, copy_overviews, src_dataset, scale):
   
   path_pair = os.path.split(src_dataset)
   filename_with_ext = path_pair[1]
@@ -52,6 +52,18 @@ def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata,
         sys.exit(1)
     else:
       vrtpath = ''
+
+  if scale:
+    rio_info = ['rio', 'info', '-v', filename_with_ext]
+    print(' '.join(rio_info))
+    rio_info_results = subprocess.run(rio_info, stdout=subprocess.PIPE)
+    stdout = rio_info_results.stdout.decode('utf-8')
+    metadata = json.loads(stdout)
+    scale_args = [
+      '-scale_{0} {1} {2} 0 254'.format(i+1, b['min'], b['max'])
+      for i,b in enumerate(metadata['stats'])
+    ]
+    gdal_translate.extend(scale_args)
 
   dst_dataset = '{0}_NEW'.format(src_dataset)
   gdal_translate.append('"{0}"'.format(src_dataset if not vrtpath else vrtpath))
@@ -123,6 +135,9 @@ def setup_arg_parser():
     help='Copy the source dataset overviews.'
   )
   parser.add_argument('src_dataset')
+  parser.add_argument('--scale',
+    action='store_true',
+  )
   return parser
 
 
@@ -137,6 +152,9 @@ if __name__ == '__main__':
     args.nodata,
     args.tmpdir,
     args.blocksize,
-    args.convert_nodata, args.copy_overviews, args.src_dataset
+    args.convert_nodata, 
+    args.copy_overviews, 
+    args.src_dataset,
+    args.scale
   )
 
