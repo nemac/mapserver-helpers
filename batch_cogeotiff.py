@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import argparse, os
+import argparse, os, subprocess
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='Convert a batch of tiffs that exist in a local folder.')
@@ -12,4 +12,10 @@ if __name__ == '__main__':
   files = [ f for f in os.listdir(folder) if f.endswith(ext) ]
   for f in files:
     path = os.path.join(folder, f)
-    os.system('./cogeotiff.py --convert_nodata {}'.format(path))
+    command = [ './cogeotiff.py', '{}'.format(path) ]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    with process.stdout:
+      for line in iter(process.stdout.readline, b''):
+        print(line.rstrip().decode("utf-8"))
+    exitcode = process.wait()
+    print(f)
