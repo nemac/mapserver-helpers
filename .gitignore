@@ -1,2 +1,6 @@
 Pipfile.lock
 *.tif
+*.xml
+*.tif
+*.img
+*.old

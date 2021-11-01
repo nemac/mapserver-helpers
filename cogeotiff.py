@@ -1,21 +1,16 @@
 #!/usr/bin/env python3
 
 '''
-Convert a GeoTiff file to a Cloud-Optimized GeoTiff.
-
-https://trac.osgeo.org/gdal/wiki/CloudOptimizedGeoTIFF
-
+Convert a GeoTiff file to a Cloud-Optimized GeoTiff. See: https://trac.osgeo.org/gdal/wiki/CloudOptimizedGeoTIFF
 Assumes gdal tools (gdal_translate, gdalbuildvrt) are in PATH.
 
 Use the --help option for more information:
-
-python convert_to_cogeo.py --help
-
+python cogeotiff.py --help
 '''
 
 import sys, os, os.path, argparse, subprocess, json
 
-def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata, copy_overviews, src_dataset, scale):
+def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata, src_dataset, scale, extension):
   
   path_pair = os.path.split(src_dataset)
   filename_with_ext = path_pair[1]
@@ -30,8 +25,7 @@ def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata,
     '-co TILED=YES',
     '-co BLOCKXSIZE={0}'.format(str(blocksize)),
     '-co BLOCKYSIZE={0}'.format(str(blocksize)),
-    '-co COPY_SRC_OVERVIEWS={}'.format('YES' if copy_overviews else 'NO'),
-    '--config GDAL_TIFF_OVR_BLOCKSIZE {0}'.format(str(blocksize))
+    '-co COPY_SRC_OVERVIEWS=NO'
   ]
 
   if a_nodata:
@@ -65,7 +59,14 @@ def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata,
     ]
     gdal_translate.extend(scale_args)
 
-  dst_dataset = '{0}_NEW'.format(src_dataset)
+  src_no_ext, src_ext = os.path.splitext(src_dataset)
+  dst_dataset = '{}.{}'.format(src_no_ext, extension)
+
+  if dst_dataset == src_dataset and not vrtpath:
+    new_src_dataset = '{}.old'.format(src_dataset)
+    os.rename(src_dataset, new_src_dataset)
+    src_dataset = new_src_dataset
+  
   gdal_translate.append('"{0}"'.format(src_dataset if not vrtpath else vrtpath))
   gdal_translate.append('"{0}"'.format(dst_dataset))
   
@@ -76,33 +77,30 @@ def convert_to_cogeotiff(of, ot, r, a_nodata, tmpdir, blocksize, convert_nodata,
   except:
     print("Something went wrong while trying to run gdal_translate!")
     sys.exit(1)
-
-  # Overviews
-  gdaladdo = ['gdaladdo',
-    '--config', 'COMPRESS_OVERVIEW', 'DEFLATE',
-    '--config', 'PREDICTOR_OVERVIEW', '2',
-    '--config', 'INTERLEAVE_OVERVIEW', 'PIXEL',
-    dst_dataset,
-    '2', '4', '8', '16' 
-  ]
-
+  
   # Cleanup
   try:
     os.remove(vrtpath)
   except:
     pass
 
-  try:
-    os.rename(src_dataset, '{}.old'.format(src_dataset))
-    os.rename(dst_dataset, src_dataset)
-    print('Done!')
-  except:
-    print("Error while attempting to rename intermediate translated dataset!")
-    sys.exit(1)
+  # Overviews
+  gdaladdo = ['gdaladdo',
+    '--config', 'COMPRESS_OVERVIEW', 'DEFLATE',
+    '--config', 'PREDICTOR_OVERVIEW', '2',
+    '--config', 'INTERLEAVE_OVERVIEW', 'PIXEL',
+    '--config GDAL_TIFF_OVR_BLOCKSIZE 128',
+    dst_dataset,
+    '2', '4', '8', '16'
+  ]
+  gdaladdo_cmd = ' '.join(gdaladdo)
+  print(gdaladdo_cmd)
+  os.system(gdaladdo_cmd)
 
 
 def setup_arg_parser():
   parser = argparse.ArgumentParser()
+  parser.add_argument('-ext', '--extension', default='tif', help='The file extension to use the for new file.')
   parser.add_argument('-of', '--output_format',
     default='GTiff',
     help='Output format (a gdal driver).'
@@ -130,10 +128,6 @@ def setup_arg_parser():
     action='store_true',
     help='Use a VRT trick to convert the value of nodata from src_dataset to the nodata value given to this script with the -nd argument.'
   )
-  parser.add_argument('--copy_overviews',
-    action='store_true',
-    help='Copy the source dataset overviews.'
-  )
   parser.add_argument('src_dataset')
   parser.add_argument('--scale',
     action='store_true',
@@ -153,8 +147,8 @@ if __name__ == '__main__':
     args.tmpdir,
     args.blocksize,
     args.convert_nodata, 
-    args.copy_overviews, 
     args.src_dataset,
-    args.scale
+    args.scale,
+    args.extension
   )
 
